@@ -1,0 +1,80 @@
+/*!
+  NZQuake Mobile (c) Copyright 2011-12 Greg Smith
+  http://www.comdynamics.co.nz
+*/
+html,body{overflow:hidden;height:100%;font-size:13px;font-family:Arial,Helvetica,Sans-serif;background:#666;padding:0}
+a:link,a:visited,a:hover{color:#CCC;text-decoration:none}.details-page{width:100%;height:100%}
+.ui-li-icon{position:absolute;left:1px;padding-top:7px}#home,#about{background:#666}#map{width:100%;height:100%}
+#map_contents{padding:0;width:100%;height:485px;}
+#map_canvas{width:100%;height:110%;padding:0;text-shadow:none}
+
+.phoney {
+        background: -webkit-gradient(linear,left top,left bottom,color-stop(0, rgb(0,178,238)),color-stop(0.51, rgb(30,144,255)),color-stop(0.52, rgb(0,178,238)));
+        background: -moz-linear-gradient(center top,rgb(0,178,238) 0%,rgb(30,144,255) 51%,rgb(0,178,238) 52%);
+        background-color:rgb(0,178,238);
+        overflow:hidden;
+       }
+ 
+.phoneytext {
+     text-shadow: 0 -1px 0 #000;
+     color: rgb(255,64,64);
+     font-family: Helvetica Neue, Helvetica, arial;
+     font-size: 12px;
+     line-height: 30px;
+     padding: 4px 5px 4px 5px;
+     font-weight: bold;
+ }
+ 
+.phoneytab {
+     text-shadow: 0 -1px 0 #000;
+     color: #fff;
+     font-family: Helvetica Neue, Helvetica, arial;
+     font-size: 12px;
+     background: rgb(0,191,255) !important;
+     overflow:hidden;
+ }
+
+
+#tt 
+   {
+    position:absolute; 
+    display:block;
+    background-color:#8B008B;
+    border-left:2px solid white;
+    border-right:2px solid white;
+    }
+
+#tttop
+    {
+      display:block; 
+      height:5px;  
+      margin-left:0px; 
+      background-color:#8B008B;
+      overflow:hidden;
+      border-top:2px solid white;
+     }
+
+#ttcont
+     {
+      display:block;
+      padding:2px 12px 2px 7px;
+      margin-left:4px; 
+      margin-right:0px; 
+      background-color:#8B008B;
+      color:#FFF;
+     }
+
+#ttbot 
+     {
+      display:block;
+      height:5px; margin-left:0px;
+      background-color:#8B008B;
+      overflow:hidden;
+      border-bottom:2px solid white;
+     }
+
+
+/** FIX for Bootstrap and Google Maps Info window styes problem **/
+img[src*="gstatic.com/"], img[src*="googleapis.com/"] {
+max-width: none !important;
+}

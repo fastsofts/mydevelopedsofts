@@ -1,0 +1,558 @@
+<!DOCTYPE html> 
+<html>
+	<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1"> 
+	<title>Hour Slider map</title> 
+        <script src="http://code.jquery.com/jquery-1.9.1.js"></script>      
+        <link rel="stylesheet"  href="http://code.jquery.com/mobile/git/jquery.mobile-git.css" /> 
+	<link rel="stylesheet" href="http://jquerymobile.com/demos/1.2.0/docs/_assets/css/jqm-docs.css"/>
+	<link rel="stylesheet" href="css/mapstyle.css"/>
+
+        <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
+
+	<script src="http://jquerymobile.com/demos/1.2.0/docs/_assets/js/jqm-docs.js"></script>
+        <script src="http://code.jquery.com/mobile/git/jquery.mobile-git.js"></script> 
+        <link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.css" />
+        <script src="http://cdn.leafletjs.com/leaflet-0.7.3/leaflet.js"></script>
+        <script src="js/leafletmarkermake.js"></script>
+
+	<link rel="stylesheet" href="css/datepicker.css"/>
+        <script type="text/javascript" src="js/datepickerUI.js"></script>
+        <script type="text/javascript" src="js/datepicker.js"></script>
+        <script type = "text/javascript">
+          var processwrapperboxcolor = "#00FFFF";
+          var maploaded = false;
+        </script>  
+        <script>
+		$(function(){
+                  $( ".date-input-css" ).datepicker({onSelect: function() {alert("hi");} });
+		})
+	</script>
+
+        <script type = "text/javascript">
+           var GMAP_LONGITUDE =   "-74.0059731"; 
+           var GMAP_LATITUDE  = "40.7143528"; 
+           var GMAP_STARTZOOM = 4; 
+           var GMAP_ENDZOOM = 20; 
+           var mapobject = null;
+           var markerpath = "css/images/defaultmarker.png";   
+           var markersholder = [];
+           var jsondata = null;
+           var defaultvaluecol = 25;
+           var datefield = 25
+           var hourfield1 = "1;2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20;21;22;23";
+           var hourfield2 = "2;3;4;5;6;7;8;9;10;11;12;13;14;15;16;17;18;19;20;21;22;23;24";
+           var hourcolor = "#000000;#6495ED;#DC143C;#FFD700;#C71585;#00FA9A;#DA70D6;#DDA0DD;#A0522D;#008080;#00FF7F;#FF6347;#8B4513;#BC8F8F;#FFC0CB;#DB7093;#C71585;#66CDAA;#F08080;#008000;#696969;#556B2F;#D2691E"
+           var defaultvalue = "";
+           var datapoints = new Array();
+           var __errorcorrectionforoverlappingmarker = 0.007;
+           var latlngbounds = new google.maps.LatLngBounds( );
+           var __markersize = "l"
+           var markers = []; 
+           var openedinfo = null;
+       </script>
+</head> 
+<body id = "mainbody"> 
+   <div data-role="page"  id="home-page" class="type-interior">
+          <div data-role="header" data-theme="f">
+            <a href="/" data-icon="arrow-l"  style = "margin-top:-4px;" data-role="button" data-rel="back" data-theme="a" data-ajax="false">Back</a>
+            <h1>Hour sliderMap</h1>
+	  </div>
+
+	<div data-role="content" >
+           <div  data-ajax="false" data-inset="true" data-dividertheme="f" class="content-primary">
+             <div id = "map_contents">
+              <div id = "map_canvas" style = "top:2%;height:600px;width:100%;">
+              </div> 
+            </div> 
+           </div>
+
+           <div data-ajax="false" data-inset="true" class="content-secondary">
+              <table id = "shchartable1" style = "margin-top:15px;margin-left:10px;width:90%;" border = "0">
+                 <tr><td><label for = "hdate">Date</label></td></tr>
+                 <tr><td><input id = "dateval" type="text" data-role="date" class = "date-input-css" readonly> <button title = "Click this when the date is changed to apply the new date" id = "dateselect">Apply</button></td></tr>
+              </table>     
+              <table id = "shchartable2" style = "margin-top:15px;margin-left:10px;width:90%;" border = "0">
+                 <tr><td><label for="hrange">Hour Range</label></td></tr>
+                 <tr><td><input name="hrange" id="hrange" min="1" max="23" value="1" type="range" data-theme="a" data-track-theme="b" data-highlight="true" /></td></tr>
+               </table>
+          </div>
+        </div>
+   </div>   
+   <script type = "text/javascript">
+        $(document).on("slidestop","#hrange",function(e)
+         {
+          plotmarkers($("#dateval").val(), $(this).val());   
+         });
+
+        function roundDown(number, decimals) 
+          {
+           decimals = decimals || 0;
+           return ( Math.floor( number * Math.pow(10, decimals) ) / Math.pow(10, decimals) );
+          }
+
+        function plotmarkers(date,hr)
+           { 
+            if (markersholder)
+               {
+                for (iremove = 0; iremove < markersholder.length; iremove++)
+                    {
+                     markersholder[iremove].setMap(null);
+                    }
+               }   
+            latlngbounds = new google.maps.LatLngBounds( );
+            markersholder = [];
+            markers = [];
+            for (icheck = 0; icheck < datapoints.length; icheck++)
+                {
+                 if (datapoints[icheck][datefield] == date)
+                    {   
+                     hrcheck1 = hourfield1.split(";");
+                     hrcheck2 = hourfield2.split(";");
+                     hrcolor = hourcolor.split(";");
+                     hrfld = "";
+                     for (ihr = 0; ihr < hrcheck1.length; ihr++)
+                         {
+                          if (hrcheck1[ihr] == hr)
+                             {
+                              hrfld = hrcheck2[ihr];
+                             }
+                         } 
+                     if (!hrfld)
+                        {
+                         continue;
+                        } 
+                     pos = String(datapoints[icheck][1]);
+                     pos = pos.replace("[","");
+                     pos = pos.replace("]","");
+                     pos = pos.split(",");      
+                     lat = parseFloat(pos[0]);
+                     lon = parseFloat(pos[1]);
+                     lat = roundDown(lat,6); 
+                     lon = roundDown(lon,6); 
+                     for (imrk = 0; imrk < markersholder.length; imrk++)
+                         { 
+                          var ln = markersholder[imrk].getPosition().lat();
+                          ln = roundDown(ln,6); 
+                          var lt = markersholder[imrk].getPosition().lng()
+                          lt = roundDown(lt,6); 
+                          if (lt == lat && ln == lon)
+                             {
+                              lat += __errorcorrectionforoverlappingmarker;
+                              lon += __errorcorrectionforoverlappingmarker;
+                              break;
+                             }
+                         } 
+                     var latlng = new google.maps.LatLng(lon,lat);
+                     latlngbounds.extend(latlng);
+                     icon = L.MakiMarkers.icon({color: hrcolor[hr-1], size: __markersize});
+                     markertoplot = new google.maps.Marker({map:mapobject,icon: icon.options.iconUrl,draggable:false,position:latlng,infoWindowIndex : icheck}); 
+                     markers.push(new highlightarea_marker(markertoplot,datapoints[icheck],icheck,hrfld));
+                     markersholder.push(markertoplot)
+                    }
+                }
+             if (latlngbounds)
+                {
+                 mapobject.fitBounds(latlngbounds);
+                }     
+           }  
+
+        function highlightarea_marker(marker,mvalues,counter,hrknt)
+           {
+            google.maps.event.addListener(marker, 'click', function() {
+                if (openedinfo)
+                   {
+                    openedinfo.close();
+                    openedinfo = null;
+                   }  
+                var contentstring = "<table>";
+                contentstring += "<tr><td style = 'color:blue;font-size:12px;font-weight:bolder'>Hour Value            : </td><td></td><td></td><td style = 'color:red;font-size:12px;font-weight:bolder'>" + mvalues[hrknt] + "</td></tr>";
+                contentstring += "<tr><td style = 'color:blue;font-size:12px;font-weight:bolder'>Settlement Point Name : </td><td></td><td></td><td style = 'color:red;font-size:12px;font-weight:bolder'>" + mvalues[26] + "</td></tr>";
+                contentstring += "<tr><td style = 'color:blue;font-size:12px;font-weight:bolder'>Market Type           : </td><td></td><td></td><td style = 'color:red;font-size:12px;font-weight:bolder'>" + mvalues[28] + "</td></tr>";
+                contentstring += "<tr><td style = 'color:blue;font-size:12px;font-weight:bolder'>LMP Type              : </td><td></td><td></td><td style = 'color:red;font-size:12px;font-weight:bolder'>" + mvalues[27] + "</td></tr>";
+                contentstring += "<tr><td style = 'color:blue;font-size:12px;font-weight:bolder'>Tou Type              : </td><td></td><td></td><td style = 'color:red;font-size:12px;font-weight:bolder'>" + mvalues[29] + "</td></tr>";
+                contentstring += "</table>";
+                var infowindow = new google.maps.InfoWindow({content: contentstring});
+                openedinfo = infowindow;
+                infowindow.open(mapobject,marker);
+            }); 
+           } 
+
+         $(document).on("click","#dateselect",function(e){
+            e.preventDefault();
+            $("#hrange").val(1).slider("refresh");
+            plotmarkers($("#dateval").val(), $("#hrange").val());   
+           });   
+  
+
+        function initialize() 
+           {
+            mapobject = null;
+            processing = false;
+            var latlng = new google.maps.LatLng(GMAP_LATITUDE,GMAP_LONGITUDE);
+            var myOptions = {zoom: GMAP_STARTZOOM,maxZoom:GMAP_ENDZOOM,streetViewControl: false,minZoom:GMAP_STARTZOOM,center: latlng,mapTypeId:google.maps.MapTypeId.ROADMAP,panControl: true,panControlOptions: {position: google.maps.ControlPosition.RIGHT_TOP},zoomControl: true,zoomControlOptions: {style: google.maps.ZoomControlStyle.SMALL, position: google.maps.ControlPosition.RIGHT_TOP}};
+            mapobject = new google.maps.Map(document.getElementById("map_canvas"),myOptions);
+            var timeoutSeconds = 4;
+            google.maps.event.addListenerOnce(mapobject, 'tilesloaded', function(){
+               google.maps.event.addListenerOnce(mapobject, 'tilesloaded', function(){
+                  if (processing)
+                     {
+                      return;
+                     } 
+                  latlngbounds = new google.maps.LatLngBounds( );
+                });
+            });
+                  
+            google.maps.event.addDomListener(window, 'resize', function() {
+                 if ($(window).width() > 400)
+                    {
+                     $("#map_canvas").css("height","130%");
+                     $("#shchartable1").css("margin-top","0px");    
+                     $("#srange").css("margin-top","0px");    
+                    }
+                 else
+                    {
+                     $("#map_canvas").css("height","67%");
+                     $("#shchartable1").css("margin-top","-160px");  
+                     $("#srange").css("margin-top","-120px");    
+                    }
+                 mapobject.setCenter(mapobject.getCenter());
+              });
+
+            defaultvalue = "";
+            datapoints = new Array();
+
+            $.getJSON( "json/_tmp_sample-1.json", function( data ) {
+                jsondata = data;
+                $.each( jsondata, function( key, val )
+                   {
+                    for (ix = 0; ix < val.length; ix++)
+                        {
+                         datapoints[ix] = new Array(30);
+                         datapoints[ix][0] = val[ix].location.type;
+                         datapoints[ix][1] = val[ix].location.coordinates;
+                         try
+                           {  
+                            if (val[ix].details.he1)
+                               {  
+                                datapoints[ix][2] = val[ix].details.he1;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][2] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he2)
+                               {  
+                                datapoints[ix][3] = val[ix].details.he2;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][3] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he3)
+                               {  
+                                datapoints[ix][4] = val[ix].details.he3;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][4] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he4)
+                               {  
+                                datapoints[ix][5] = val[ix].details.he4;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][5] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he5)
+                               {  
+                                datapoints[ix][6] = val[ix].details.he5;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][6] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he6)
+                               {  
+                                datapoints[ix][7] = val[ix].details.he6;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][7] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he7)
+                               {  
+                                datapoints[ix][8] = val[ix].details.he7;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][8] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he8)
+                               {  
+                                datapoints[ix][9] = val[ix].details.he8;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][9] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he9)
+                               {  
+                                datapoints[ix][10] = val[ix].details.he9;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][10] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he10)
+                               {  
+                                datapoints[ix][11] = val[ix].details.he10;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][11] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he11)
+                               {  
+                                datapoints[ix][12] = val[ix].details.he11;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][12] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he12)
+                               {  
+                                datapoints[ix][13] = val[ix].details.he12;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][13] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he13)
+                               {  
+                                datapoints[ix][14] = val[ix].details.he13;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][14] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he14)
+                               {  
+                                datapoints[ix][15] = val[ix].details.he14;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][15] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he15)
+                               {  
+                                datapoints[ix][16] = val[ix].details.he15;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][16] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he16)
+                               {  
+                                datapoints[ix][17] = val[ix].details.he16;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][17] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he17)
+                               {  
+                                datapoints[ix][18] = val[ix].details.he17;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][18] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he18)
+                               {  
+                                datapoints[ix][19] = val[ix].details.he18;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][19] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he19)
+                               {  
+                                datapoints[ix][20] = val[ix].details.he19;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][20] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he21)
+                               {  
+                                datapoints[ix][21] = val[ix].details.he20;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][21] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he22)
+                               {  
+                                datapoints[ix][22] = val[ix].details.he21;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][22] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he23)
+                               {  
+                                datapoints[ix][23] = val[ix].details.he22;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][23] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.he24)
+                               {  
+                                datapoints[ix][24] = val[ix].details.he23;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][24] = "";
+                           }
+                         try
+                           {  
+                            if (val[ix].details.delivery_date)
+                               {  
+                                datapoints[ix][25] = val[ix].details.delivery_date;
+                               }
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][25] = "";
+                           } 
+                         try
+                           {  
+                            if (val[ix].details.settlement_point_name)
+                               {  
+                                datapoints[ix][26] = val[ix].details.settlement_point_name;
+                               } 
+                           }
+                         catch (e)
+                           {
+                            datapoints[ix][26] = "";
+                           }  
+                         try
+                           { 
+                            if (val[ix].details.lmp_type)
+                               {  
+                                datapoints[ix][27] = val[ix].details.lmp_type;
+                               }
+                           }
+                         catch (e)
+                           {       
+                            datapoints[ix][27] = "";
+                           }   
+                         try
+                           { 
+                            if (val[ix].details.market_type)
+                               {  
+                                datapoints[ix][28] = val[ix].details.market_type;
+                               }
+                           }
+                         catch (e)
+                           {       
+                            datapoints[ix][28] = "";
+                           }   
+                         try
+                           { 
+                            if (val[ix].details.tou_type)
+                               {  
+                                datapoints[ix][29] = val[ix].details.tou_type;
+                               }
+                           }
+                         catch (e)
+                           {       
+                            datapoints[ix][29] = "";
+                           }    
+                         if (!defaultvalue)
+                            {
+                             defaultvalue = datapoints[ix][defaultvaluecol];
+                             $("#dateval").val(defaultvalue);   
+                            } 
+                        } 
+                      plotmarkers($("#dateval").val(), $("#hrange").val());   
+                   });    
+            });
+          }
+       initialize();
+    </script>
+
+
+</body>
+</html>
